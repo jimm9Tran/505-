@@ -1,77 +1,82 @@
 #include <iostream>
 #include <string>
-#include <cctype>
 #include <vector>
+#include <algorithm>
 
-// Hàm giải mã bằng mã dịch vòng với khóa k
-std::string decryptCaesar(const std::string &ciphertext, int k) {
-    std::string plaintext = "";
-    for (char c : ciphertext) {
+std::string decryptCaesar(const std::string& cipherText, int shift) {
+    std::string plainText = "";
+    for (char c : cipherText) {
         if (isalpha(c)) {
             char base = isupper(c) ? 'A' : 'a';
-            plaintext += (c - base - k + 26) % 26 + base;
+            plainText += (c - base - shift + 26) % 26 + base;
         } else {
-            plaintext += c;
+            plainText += c;
         }
     }
-    return plaintext;
+    return plainText;
 }
 
-// Hàm thám mã với tất cả các khóa dịch vòng
-void bruteForceCaesar(const std::string &ciphertext) {
-    for (int k = 1; k < 26; ++k) {
-        std::string decryptedText = decryptCaesar(ciphertext, k);
-        std::cout << "Với khóa " << k << ": " << decryptedText << std::endl;
-    }
-}
-
-
-// Hàm để lặp lại khóa cho đủ chiều dài bản mã
-std::string repeatKey(const std::string &key, int length) {
-    std::string repeatedKey;
-    for (int i = 0; i < length; ++i) {
-        repeatedKey += key[i % key.length()];
-    }
-    return repeatedKey;
-}
-
-// Hàm giải mã bằng Vigenere với khóa đã biết
-std::string decryptVigenere(const std::string &ciphertext, const std::string &key) {
-    std::string plaintext = "";
-    std::string repeatedKey = repeatKey(key, ciphertext.length());
-
-    for (size_t i = 0; i < ciphertext.length(); ++i) {
-        if (isalpha(ciphertext[i])) {
-            char base = isupper(ciphertext[i]) ? 'A' : 'a';
-            plaintext += (ciphertext[i] - repeatedKey[i] + 26) % 26 + base;
-        } else {
-            plaintext += ciphertext[i];
+std::vector<int> getFrequency(const std::string& text) {
+    std::vector<int> freq(26, 0);
+    for (char c : text) {
+        if (isalpha(c)) {
+            freq[tolower(c) - 'a']++;
         }
     }
-    return plaintext;
+    return freq;
 }
 
-// Hàm thám mã với các độ dài khóa khác nhau
-void bruteForceVigenere(const std::string &ciphertext) {
-    std::vector<std::string> possibleKeys = {"a", "ab", "abc", "abcd"}; // Ví dụ một vài khóa thử nghiệm
-    for (const auto &key : possibleKeys) {
-        std::string decryptedText = decryptVigenere(ciphertext, key);
-        std::cout << "Với khóa \"" << key << "\": " << decryptedText << std::endl;
+int estimateKeyLength(const std::string& cipherText) {
+    int maxLength = 10;
+    for (int length = 1; length <= maxLength; ++length) {
+        int coincidences = 0;
+        for (int i = 0; i < cipherText.size() - length; ++i) {
+            if (cipherText[i] == cipherText[i + length]) {
+                coincidences++;
+            }
+        }
+        if (coincidences > 5) {
+            return length;
+        }
     }
+    return 1;
+}
+
+std::string decryptVigenere(const std::string& cipherText, const std::string& key) {
+    std::string plainText = "";
+    int keyLength = key.size();
+    for (int i = 0; i < cipherText.size(); ++i) {
+        if (isalpha(cipherText[i])) {
+            char base = isupper(cipherText[i]) ? 'A' : 'a';
+            char shift = tolower(key[i % keyLength]) - 'a';
+            plainText += (cipherText[i] - base - shift + 26) % 26 + base;
+        } else {
+            plainText += cipherText[i];
+        }
+    }
+    return plainText;
 }
 
 int main() {
-    // Bản mã cần giải mã
-    std::string ciphertext = "tyltsrekyreytflex";
-    std::cout << "Thám mã bằng mã dịch vòng (Caesar Cipher):\n";
-    bruteForceCaesar(ciphertext);
-
-	std::cout << "\n----------------------------------------------\n";
-
-	    // Bản mã cần giải mã
-    // std::string ciphertext = "tyltsrekyreytflex";
-    std::cout << "Thám mã Vigenere với các khóa thử nghiệm:\n";
-    bruteForceVigenere(ciphertext);
-
+    std::string cipherText = "tyltsrekyreytfex";
+    
+    std::cout << "Thám mã bằng Caesar Cipher:\n";
+    for (int shift = 1; shift <= 25; ++shift) {
+        std::string decrypted = decryptCaesar(cipherText, shift);
+        std::cout << "Shift " << shift << ": " << decrypted << std::endl;
+    }
+    
+    int keyLength = estimateKeyLength(cipherText);
+    std::cout << "\nDự đoán độ dài khóa Vigenère: " << keyLength << std::endl;
+    
+    std::string possibleKey(keyLength, 'a');
+    for (int i = 0; i < 26; ++i) {
+        for (int j = 0; j < keyLength; ++j) {
+            possibleKey[j] = 'a' + i;
+        }
+        std::string decrypted = decryptVigenere(cipherText, possibleKey);
+        std::cout << "Thử khóa \"" << possibleKey << "\": " << decrypted << std::endl;
+    }
+    
     return 0;
 }
